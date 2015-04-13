@@ -7,13 +7,14 @@ import java.util.Date
 import java.util.Calendar
 import common._
 
-class SyntheticRisk(filePath: String) {
+class SyntheticRisk(csv: String) {
   private val m: Int = 52
   private val T: Int = 260
-  val values = Utils.getDateValues(filePath).toList
+  val values = Utils.getDateValues(csv).toList
   val returnByDate = Utils.aggregateWithPrevious(new DateValue(new Date(), 0.0), values, (prev: DateValue, current: DateValue) => { new DateValue(current.date, if (prev.value != 0.0) ((current.value - prev.value) / prev.value) else 0) })
-  val returnByPeriod = Utils.aggregateGroupBy(new DateValue(new Date(),1.0), returnByDate, (current: DateValue) => { current.week }, (prev: DateValue, current: DateValue) => { new DateValue(current.date, prev.value * (1 + current.value)) })
-  
+  val returnByPeriod = Utils.aggregateGroupBy(returnByDate, 
+                                              (current: DateValue) => { current.week }, 
+                                              (l: List[DateValue]) => (l.foldLeft(new DateValue(new Date(),1.0))((f, g) => new DateValue(g.date, f.value * (1 + g.value)))) - 1.0)
   
   override def toString = {
     val date = for {
